@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EXCEL DATA ADVENTURE - Informatika Kelas 8 SMP</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 Standalone CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+  <div id="app" class="flex flex-col min-h-screen">
+    <!-- TOP HEADER -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4 shadow-md">
+      <div className="flex items-center gap-3">
+        <div class="bg-emerald-500 p-2 rounded-xl text-slate-950 font-black flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i data-lucide="table" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg tracking-wide text-white flex items-center gap-2">
+            EXCEL DATA ADVENTURE
+            <span class="bg-amber-400/20 text-amber-300 text-xs px-2.5 py-0.5 rounded-full border border-amber-400/30 font-medium">SMP Kelas 8</span>
+          </h1>
+          <p class="text-xs text-slate-400">Misi Menjadi Ahli Analisis Data Informatika</p>
+        </div>
+      </div>
+
+      <!-- Stats & Progress Header -->
+      <div class="flex items-center gap-4 sm:gap-6">
+        <!-- Level Badge -->
+        <div class="hidden sm:flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <i data-lucide="flame" class="w-5 h-5 text-amber-400"></i>
+          <div>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase">Level {{ levelInfo.level }}</p>
+            <p class="text-xs font-bold text-amber-300">{{ levelInfo.title }}</p>
+          </div>
+        </div>
+
+        <!-- Total Points -->
+        <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+          <div>
+            <p class="text-[10px] text-slate-400 font-semibold uppercase">Total Poin</p>
+            <p class="text-xs font-bold text-emerald-400">{{ points }} XP</p>
+          </div>
+        </div>
+
+        <!-- Overall Progress -->
+        <div class="hidden md:block w-36">
+          <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+            <span>Progres Belajar</span>
+            <span>{{ completedMissions.length }}/7 Misi</span>
+          </div>
+          <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+            <div class="bg-emerald-400 h-full transition-all duration-500" :style="{ width: (completedMissions.length / 7 * 100) + '%' }"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN BODY LAYOUT -->
+    <div class="flex flex-1 overflow-hidden">
+      <!-- SIDEBAR NAV -->
+      <aside class="w-64 bg-slate-800/90 border-r border-slate-700 flex flex-col justify-between hidden lg:flex custom-scrollbar overflow-y-auto">
+        <div class="p-3 space-y-1">
+          <p class="text-[11px] font-bold text-slate-400 px-3 py-2 uppercase tracking-wider">Modul & Navigasi</p>
+          <button
+            v-for="item in navItems"
+            :key="item.id"
+            @click="activeTab = item.id"
+            :class="[
+              'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all',
+              activeTab === item.id 
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold shadow-sm' 
+                : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+            ]"
+          >
+            <div class="flex items-center gap-2.5">
+              <i :data-lucide="item.icon" :class="activeTab === item.id ? 'text-emerald-400' : 'text-slate-400'" class="w-4 h-4"></i>
+              <span class="truncate">{{ item.title }}</span>
+            </div>
+            <i v-if="completedMissions.includes(item.id)" data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          </button>
+        </div>
+
+        <!-- Badges Card -->
+        <div class="p-3 border-t border-slate-700 bg-slate-900/50">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Lencana Terbuka</p>
+          <div class="flex gap-2 justify-center">
+            <div 
+              v-for="badge in badges" 
+              :key="badge.id"
+              :title="badge.title + ': ' + badge.desc + ' (' + badge.score + ' XP)'"
+              :class="[
+                'p-2 rounded-lg border text-center transition-all',
+                points >= badge.score 
+                  ? 'bg-amber-400/10 border-amber-400/30 text-amber-300 shadow-sm shadow-amber-400/10' 
+                  : 'bg-slate-800 border-slate-700 text-slate-600 opacity-40'
+              ]"
+            >
+              <i :data-lucide="badge.icon" class="w-4 h-4 mx-auto"></i>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MOBILE BOTTOM NAVBAR -->
+      <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 z-40 flex overflow-x-auto p-2 gap-2 custom-scrollbar">
+        <button
+          v-for="item in navItems"
+          :key="item.id"
+          @click="activeTab = item.id"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs whitespace-nowrap flex items-center gap-1.5 shrink-0',
+            activeTab === item.id ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-700 text-slate-300'
+          ]"
+        >
+          <i :data-lucide="item.icon" class="w-3.5 h-3.5"></i>
+          {{ item.title }}
+        </button>
+      </div>
+
+      <!-- MAIN CONTENT AREA -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-slate-900 pb-20 lg:pb-8 custom-scrollbar">
+        <div class="max-w-5xl mx-auto space-y-6">
+
+          <!-- BERANDA -->
+          <div v-if="activeTab === 'home'" class="space-y-8">
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 via-indigo-950 to-slate-900 border border-slate-700 p-6 md:p-8 shadow-2xl">
+              <div class="relative z-10 space-y-4 max-w-2xl">
+                <span class="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full border border-emerald-500/30">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Media Pembelajaran Informatika Kelas VIII SMP
+                </span>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                  EXCEL DATA ADVENTURE
+                </h1>
+                <p class="text-slate-300 text-sm md:text-base leading-relaxed">
+                  Selamat datang di petualangan olah data! Di sini kamu akan belajar konsep dasar analisis data, 
+                  mengoperasikan tabel Microsoft Excel, hingga memecahkan tantangan riil pengolahan data kantin sekolah!
+                </p>
+                <div class="pt-2 flex flex-wrap gap-4">
+                  <button 
+                    @click="activeTab = 'm1'" 
+                    class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+                  >
+                    <i data-lucide="play" class="w-5 h-5 fill-slate-950"></i> MULAI BELAJAR SEKARANG
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex items-center gap-4">
+                <div class="p-3 bg-amber-400/10 text-amber-400 rounded-lg">
+                  <i data-lucide="trophy" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 font-medium">Total Skor Pengalaman</p>
+                  <p class="text-xl font-bold text-amber-300">{{ points }} XP</p>
+                </div>
+              </div>
+              <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex items-center gap-4">
+                <div class="p-3 bg-emerald-400/10 text-emerald-400 rounded-lg">
+                  <i data-lucide="check-circle" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 font-medium">Misi Tuntas</p>
+                  <p class="text-xl font-bold text-emerald-400">{{ completedMissions.length }} dari 7 Misi</p>
+                </div>
+              </div>
+              <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex items-center gap-4">
+                <div class="p-3 bg-indigo-400/10 text-indigo-400 rounded-lg">
+                  <i data-lucide="award" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 font-medium">Lencana Terbuka</p>
+                  <p class="text-xl font-bold text-indigo-300">{{ unlockedBadgesCount }} / {{ badges.length }} Lencana</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- List of Missions -->
+            <div class="space-y-4">
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="list" class="w-5 h-5 text-emerald-400"></i> Peta 7 Misi Pembelajaran
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div 
+                  v-for="m in missionList" 
+                  :key="m.id"
+                  @click="activeTab = m.id"
+                  :class="[
+                    'p-4 rounded-xl border transition-all flex justify-between items-start cursor-pointer hover:border-emerald-500',
+                    completedMissions.includes(m.id) ? 'bg-emerald-950/20 border-emerald-500/40' : 'bg-slate-800 border-slate-700'
+                  ]"
+                >
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <h3 class="font-bold text-sm text-white">{{ m.title }}</h3>
+                      <span v-if="completedMissions.includes(m.id)" class="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">Selesai</span>
+                    </div>
+                    <p class="text-xs text-slate-400">{{ m.desc }}</p>
+                  </div>
+                  <span class="text-xs font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-lg shrink-0">
+                    +{{ m.xp }} XP
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HALAMAN 1 -->
+          <div v-if="activeTab === 'm1'" class="space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">HALAMAN 1</span>
+              <h1 class="text-2xl font-bold text-white">Mengenal Analisis Data & Microsoft Excel</h1>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-3">
+                <h3 class="font-bold text-amber-300 flex items-center gap-2 text-sm">
+                  <i data-lucide="book-open" class="w-4 h-4"></i> Pengertian Data & Analisis Data
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  <strong class="text-white">Data</strong> adalah kumpulan fakta mentah (angka, teks, gambar). 
+                  <strong class="text-white">Analisis Data</strong> adalah proses mengolah data mentah menjadi informasi bermanfaat untuk membuat keputusan.
+                </p>
+              </div>
+              <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-3">
+                <h3 class="font-bold text-emerald-300 flex items-center gap-2 text-sm">
+                  <i data-lucide="layers" class="w-4 h-4"></i> Macam-Macam Data (SMP)
+                </h3>
+                <ul class="text-xs text-slate-300 space-y-1.5 list-disc pl-4">
+                  <li><strong class="text-white">Kualitatif:</strong> Teks/Kategori (Contoh: Hobi, Nama Kategori).</li>
+                  <li><strong class="text-white">Kuantitatif:</strong> Angka/Jumlah (Contoh: Nilai 85, 90).</li>
+                  <li><strong class="text-white">Diskrit:</strong> Bilangan Utuh (Contoh: Jumlah saudara 2 orang).</li>
+                  <li><strong class="text-white">Kontinu:</strong> Ukuran Pecahan (Contoh: Tinggi badan 155.5 cm).</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- UI Explorer Clickable -->
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+              <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i> Bagian Utama Microsoft Excel (Klik Tombol untuk Penjelasan)
+              </h3>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <button
+                  v-for="comp in excelComponents"
+                  :key="comp.name"
+                  @click="activeComp = comp"
+                  :class="[
+                    'p-3 rounded-lg border text-left text-xs font-semibold transition-all',
+                    activeComp?.name === comp.name ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'
+                  ]"
+                >
+                  {{ comp.name }}
+                </button>
+              </div>
+              <div v-if="activeComp" class="bg-emerald-950/30 border border-emerald-500/40 p-3.5 rounded-lg text-xs text-emerald-200">
+                <strong class="text-amber-300">{{ activeComp.name }}:</strong> {{ activeComp.desc }}
+              </div>
+            </div>
+
+            <!-- Simulator Challenge 1 -->
+            <div class="space-y-3">
+              <h3 class="font-bold text-white text-base">EXCEL SIMULATOR CHALLENGE (MISI 1)</h3>
+              <p class="text-xs text-slate-300">
+                Isilah simulator berikut sesuai petunjuk:
+                <br>1. Masukkan kata <code class="bg-slate-800 text-amber-300 px-1 rounded">Nama</code> di <strong>A1</strong>
+                <br>2. Masukkan kata <code class="bg-slate-800 text-amber-300 px-1 rounded">Nilai</code> di <strong>B1</strong>
+                <br>3. Masukkan nama kamu di <strong>A2</strong>
+                <br>4. Masukkan angka <code class="bg-slate-800 text-amber-300 px-1 rounded">85</code> di <strong>B2</strong>
+              </p>
+
+              <!-- Reusable Excel Component Instance -->
+              <excel-simulator 
+                :initial-grid="m1Grid" 
+                :cols="['A', 'B', 'C']" 
+                :rows="3"
+                @grid-updated="val => m1Grid = val"
+              ></excel-simulator>
+
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                <div class="text-xs">
+                  <span class="font-bold text-amber-300">Status Tantangan:</span>
+                  <span :class="isM1Passed ? 'text-emerald-400 font-bold ml-2' : 'text-slate-400 ml-2'">
+                    {{ isM1Passed ? '✔ Semua Data Tepat!' : 'Belum selesai sepenuhnya' }}
+                  </span>
+                </div>
+                <button 
+                  v-if="isM1Passed && !completedMissions.includes('m1')"
+                  @click="completeMission('m1', 100)"
+                  class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs shadow"
+                >
+                  Klaim +100 XP
+                </button>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700">
+              <button @click="activeTab = 'm2'" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl border border-slate-600 flex items-center gap-2 text-xs">
+                Lanjut ke Misi 2 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- HALAMAN 2 -->
+          <div v-if="activeTab === 'm2'" class="space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">HALAMAN 2</span>
+              <h1 class="text-2xl font-bold text-white">Menyimpan dan Memfilter Data</h1>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-2">
+              <h3 class="font-bold text-amber-300 text-sm">Pengelolaan Data Terstruktur & Filter</h3>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Filter digunakan untuk menyaring data yang kita butuhkan saja, sedangkan perkalian otomatis 
+                <code class="text-emerald-300 font-mono">Jumlah × Harga</code> memudahkan perhitungan cepat tanpa kalkulator manual.
+              </p>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                  <i data-lucide="filter" class="w-4 h-4 text-emerald-400"></i> Simulator Tabel Penjualan Barang Koperasi
+                </h3>
+                <div class="flex flex-wrap gap-2 text-xs">
+                  <button 
+                    @click="m2FilterMoreThan5 = !m2FilterMoreThan5; checkM2Challenge()"
+                    :class="['px-3 py-1.5 rounded-lg border font-semibold', m2FilterMoreThan5 ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-700 text-slate-200 border-slate-600']"
+                  >
+                    Filter Jumlah > 5
+                  </button>
+                  <button @click="m2SortOrder = 'asc'" :class="['px-3 py-1.5 rounded-lg border font-semibold', m2SortOrder === 'asc' ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-200 border-slate-600']">
+                    Sort Terkecil
+                  </button>
+                  <button @click="m2SortOrder = 'desc'" :class="['px-3 py-1.5 rounded-lg border font-semibold', m2SortOrder === 'desc' ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-200 border-slate-600']">
+                    Sort Terbesar
+                  </button>
+                  <button @click="m2FilterMoreThan5 = false; m2SortOrder = null" class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 border border-slate-700">
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              <!-- Table -->
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse font-mono">
+                  <thead>
+                    <tr class="bg-slate-900 text-slate-300 border-b border-slate-700">
+                      <th class="p-2.5">No</th>
+                      <th class="p-2.5">Nama Barang</th>
+                      <th class="p-2.5">Jumlah</th>
+                      <th class="p-2.5">Harga</th>
+                      <th class="p-2.5 text-emerald-400">Total (Otomatis)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-700">
+                    <tr v-for="item in processedM2Data" :key="item.id" class="hover:bg-slate-750">
+                      <td class="p-2.5 text-slate-400">{{ item.id }}</td>
+                      <td class="p-2.5 font-semibold text-white">{{ item.nama }}</td>
+                      <td class="p-2.5">
+                        <input type="number" v-model.number="item.jumlah" class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-amber-300 focus:outline-none" />
+                      </td>
+                      <td class="p-2.5 text-slate-300">Rp {{ item.harga.toLocaleString() }}</td>
+                      <td class="p-2.5 font-bold text-emerald-400">Rp {{ (item.jumlah * item.harga).toLocaleString() }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-700 flex items-center justify-between text-xs">
+                <span>Tantangan: Aktifkan <strong>"Filter Jumlah > 5"</strong>!</span>
+                <span v-if="m2Passed" class="text-emerald-400 font-bold flex items-center gap-1">
+                  <i data-lucide="check-circle" class="w-4 h-4"></i> Berhasil! (+200 XP)
+                </span>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700">
+              <button @click="activeTab = 'm3'" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl border border-slate-600 flex items-center gap-2 text-xs">
+                Lanjut ke Misi 3 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- HALAMAN 3 -->
+          <div v-if="activeTab === 'm3'" class="space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">HALAMAN 3</span>
+              <h1 class="text-2xl font-bold text-white">Excel sebagai Kalkulator Matematika</h1>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-2">
+              <h3 class="font-bold text-amber-300 text-sm">Rumus Diawali Tanda Sama Dengan (=)</h3>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Operator: Penjumlahan (<code class="text-amber-300">+</code>), Pengurangan (<code class="text-amber-300">-</code>), Perkalian (<code class="text-amber-300">*</code>), Pembagian (<code class="text-amber-300">/</code>).
+              </p>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+              <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                <i data-lucide="calculator" class="w-4 h-4 text-emerald-400"></i> Widget Uji Rumus Matematika Excel
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-center text-xs">
+                <div>
+                  <label class="text-slate-400 mb-1 block">Angka 1 (Sel A1)</label>
+                  <input type="number" v-model.number="calcN1" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono" />
+                </div>
+                <div>
+                  <label class="text-slate-400 mb-1 block">Operator</label>
+                  <select v-model="calcOp" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-amber-300 font-mono font-bold">
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                    <option value="*">*</option>
+                    <option value="/">/</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-slate-400 mb-1 block">Angka 2 (Sel B1)</label>
+                  <input type="number" v-model.number="calcN2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono" />
+                </div>
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 text-center">
+                  <span class="text-[10px] text-slate-400 block">Hasil (C1)</span>
+                  <span class="text-lg font-bold text-emerald-400 font-mono">{{ calcResult }}</span>
+                </div>
+              </div>
+              <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700 text-xs">
+                <span class="text-slate-400">Penulisan Rumus Excel: </span>
+                <code class="text-amber-300 font-mono font-bold">=A1{{ calcOp }}B1</code>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="font-bold text-white text-base">Praktik Menggunakan Grid Simulator</h3>
+              <excel-simulator 
+                :initial-grid="m3Grid" 
+                :cols="['A', 'B', 'C']" 
+                :rows="4"
+                @grid-updated="val => { m3Grid = val; checkM3(); }"
+              ></excel-simulator>
+              <div class="bg-slate-800 p-3.5 rounded-lg border border-slate-700 flex justify-between items-center text-xs">
+                <span>Ketik rumus dengan tanda <code class="text-amber-300 font-mono">=</code> di kolom C.</span>
+                <span v-if="m3Passed" class="text-emerald-400 font-bold">✔ Praktik Rumus Sukses! (+300 XP)</span>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700">
+              <button @click="activeTab = 'm4'" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl border border-slate-600 flex items-center gap-2 text-xs">
+                Lanjut ke Misi 4 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- HALAMAN 4 -->
+          <div v-if="activeTab === 'm4'" class="space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">HALAMAN 4</span>
+              <h1 class="text-2xl font-bold text-white">Fungsi SUM (Penjumlahan Otomatis)</h1>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-2 text-xs">
+              <h3 class="font-bold text-amber-300 text-sm">Penggunaan Fungsi SUM</h3>
+              <p class="text-slate-300 leading-relaxed">
+                Fungsi <code class="text-emerald-400 font-mono font-bold">=SUM(B1:B5)</code> otomatis menjumlahkan semua sel dari B1 sampai B5 sekaligus.
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              <excel-simulator 
+                :initial-grid="m4Grid" 
+                :cols="['A', 'B']" 
+                :rows="6"
+                title="Tabel Penjualan Alat Tulis - Ketik =SUM(B1:B5) pada Sel B6"
+                @grid-updated="val => { m4Grid = val; checkM4(); }"
+              ></excel-simulator>
+
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                <span>Target: Sel B6 bernilai 60 secara otomatis.</span>
+                <span v-if="m4Passed" class="text-emerald-400 font-bold">✔ SUM Berhasil! (+400 XP)</span>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700">
+              <button @click="activeTab = 'm5'" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl border border-slate-600 flex items-center gap-2 text-xs">
+                Lanjut ke Misi 5 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- HALAMAN 5 -->
+          <div v-if="activeTab === 'm5'" class="space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">HALAMAN 5</span>
+              <h1 class="text-2xl font-bold text-white">Fungsi Statistik: AVERAGE, MIN, dan MAX</h1>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-1">
+                <h4 class="font-bold text-emerald-400">AVERAGE(range)</h4>
+                <p class="text-slate-300">Menghitung Rata-rata angka.</p>
+                <code class="text-amber-300 font-mono font-bold block">=AVERAGE(B1:B5)</code>
+              </div>
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-1">
+                <h4 class="font-bold text-indigo-400">MIN(range)</h4>
+                <p class="text-slate-300">Mencari Nilai Terkecil.</p>
+                <code class="text-amber-300 font-mono font-bold block">=MIN(B1:B5)</code>
+              </div>
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-1">
+                <h4 class="font-bold text-amber-400">MAX(range)</h4>
+                <p class="text-slate-300">Mencari Nilai Terbesar.</p>
+                <code class="text-amber-300 font-mono font-bold block">=MAX(B1:B5)</code>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <excel-simulator 
+                :initial-grid="m5Grid" 
+                :cols="['A', 'B']" 
+                :rows="8"
+                title="Analisis Nilai Siswa"
+                @grid-updated="val => { m5Grid = val; checkM5(); }"
+              ></excel-simulator>
+
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                <span>Isi rumus AVERAGE pada B6, MIN pada B7, MAX pada B8.</span>
+                <span v-if="m5Passed" class="text-emerald-400 font-bold">✔ Statistik Tepat! (+500 XP)</span>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700">
+              <button @click="activeTab = 'm6'" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl border border-slate-600 flex items-center gap-2 text-xs">
+                Lanjut ke Misi 6 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- HALAMAN 6 -->
+          <div v-if="activeTab === 'm6'" class="space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">HALAMAN 6</span>
+              <h1 class="text-2xl font-bold text-white">Logika Keputusan dengan Fungsi IF</h1>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-3 text-xs">
+              <h3 class="font-bold text-amber-300 text-sm">Struktur Rumus IF</h3>
+              <div class="bg-slate-900 p-3 rounded-lg font-mono text-amber-300 border border-slate-700">
+                =IF(kondisi, "Nilai_Jika_Benar", "Nilai_Jika_Salah")
+              </div>
+              <p class="text-slate-300">Contoh: <code class="text-emerald-300 font-mono">=IF(B1>=75, "Lulus", "Belum Lulus")</code></p>
+            </div>
+
+            <div class="space-y-3">
+              <excel-simulator 
+                :initial-grid="m6Grid" 
+                :cols="['A', 'B', 'C']" 
+                :rows="5"
+                title="Penentuan Kelulusan Siswa"
+                @grid-updated="val => { m6Grid = val; checkM6(); }"
+              ></excel-simulator>
+
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                <span>Target: Menampilkan teks "Lulus" atau "Belum Lulus" otomatis di kolom C.</span>
+                <span v-if="m6Passed" class="text-emerald-400 font-bold">✔ Logika IF Tepat! (+600 XP)</span>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-700">
+              <button @click="activeTab = 'm7'" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-2.5 rounded-xl border border-slate-600 flex items-center gap-2 text-xs">
+                Lanjut ke Final Challenge <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- HALAMAN 7 (FINAL CAPSTONE) -->
+          <div v-if="activeTab === 'm7'" class="space-y-6 pb-12">
+            <div class="border-b border-slate-700 pb-4">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">HALAMAN 7 - FINAL CHALLENGE</span>
+              <h1 class="text-2xl font-bold text-white">Studi Kasus: Pengelola Kantin Sekolah</h1>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-2 text-xs">
+              <h3 class="font-bold text-amber-300 text-sm">Skenario Misi Utama</h3>
+              <p class="text-slate-300 leading-relaxed">
+                Kamu adalah Manajer Data Kantin Sekolah. Olah tabel data di bawah dan selesaikan kuis analisisnya!
+              </p>
+            </div>
+
+            <excel-simulator 
+              :initial-grid="m7Grid" 
+              :cols="['Barang', 'Qty (B)', 'Harga (C)', 'Total (D)', 'Status (E)']" 
+              :rows="8"
+              title="Laporan Data Keuangan Kantin Sekolah"
+            ></excel-simulator>
+
+            <!-- Quiz & Certification -->
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+              <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <i data-lucide="help-circle" class="w-5 h-5 text-emerald-400"></i> Kuis Analisis Sintesis Data Kantin
+              </h3>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label class="text-slate-300 block font-semibold mb-1">1. Barang apa yang paling banyak terjual?</label>
+                  <input type="text" v-model="q1" placeholder="Nama barang..." class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white" />
+                </div>
+                <div>
+                  <label class="text-slate-300 block font-semibold mb-1">2. Barang apa dengan total pendapatan tertinggi?</label>
+                  <input type="text" v-model="q2" placeholder="Nama barang..." class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white" />
+                </div>
+                <div>
+                  <label class="text-slate-300 block font-semibold mb-1">3. Berapa total pendapatan kantin (Sel D6)?</label>
+                  <input type="text" v-model="q3" placeholder="Angka..." class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white" />
+                </div>
+                <div>
+                  <label class="text-slate-300 block font-semibold mb-1">4. Berapa rata-rata barang terjual (Sel B7)?</label>
+                  <input type="text" v-model="q4" placeholder="Angka..." class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white" />
+                </div>
+              </div>
+
+              <button 
+                @click="submitFinalQuiz"
+                class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-6 py-3 rounded-xl shadow-lg shadow-amber-400/20 text-xs flex items-center gap-2"
+              >
+                <i data-lucide="award" class="w-4 h-4"></i> KUMPULKAN LAPORAN FINAL & SERTIFIKAT
+              </button>
+
+              <div v-if="m7Passed" class="bg-emerald-950/40 border border-emerald-500/50 p-6 rounded-xl text-center space-y-3">
+                <i data-lucide="trophy" class="w-12 h-12 text-amber-400 mx-auto"></i>
+                <h2 class="text-xl font-extrabold text-white">SELAMAT! KAMU MENJADI AHLI ANALISIS DATA!</h2>
+                <p class="text-xs text-emerald-200">
+                  Seluruh 7 Misi pembelajaran Informatika Bab Analisis Data Kelas 8 SMP berhasil dituntaskan dengan sempurna! (+800 XP)
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- SCRIPT ENGINE VUE & FORMULA PARSER -->
+  <script>
+    // --- SAFE FORMULA EVALUATOR ENGINE (NO EVAL) ---
+    function parseCellRef(refStr) {
+      const match = refStr.trim().toUpperCase().match(/^([A-Z]+)([0-9]+)$/);
+      if (!match) return null;
+      const colStr = match[1];
+      const rowNum = parseInt(match[2], 10);
+      let colIdx = 0;
+      for (let i = 0; i < colStr.length; i++) {
+        colIdx = colIdx * 26 + (colStr.charCodeAt(i) - 64);
+      }
+      return { col: colIdx - 1, row: rowNum - 1 };
+    }
+
+    function evaluateFormula(formulaStr, gridData) {
+      if (!formulaStr || typeof formulaStr !== 'string' || !formulaStr.startsWith('=')) return formulaStr;
+      const rawExpr = formulaStr.substring(1).trim();
+
+      const getVal = (token) => {
+        token = token.trim();
+        if (!token) return 0;
+        if (token.startsWith('"') && token.endsWith('"')) return token.slice(1, -1);
+        const num = Number(token);
+        if (!isNaN(num)) return num;
+        
+        const cellPos = parseCellRef(token);
+        if (cellPos) {
+          const cellVal = gridData[cellPos.row]?.[cellPos.col];
+          if (cellVal === undefined || cellVal === null || cellVal === '') return 0;
+          if (typeof cellVal === 'string' && cellVal.startsWith('=')) return evaluateFormula(cellVal, gridData);
+          const parsedNum = Number(cellVal);
+          return isNaN(parsedNum) ? cellVal : parsedNum;
+        }
+        return token;
+      };
+
+      const getRangeValues = (argStr) => {
+        const parts = argStr.split(':');
+        let cells = [];
+        if (parts.length === 1) {
+          const c = parseCellRef(parts[0]);
+          if (c) cells = [c];
+        } else if (parts.length === 2) {
+          const start = parseCellRef(parts[0]);
+          const end = parseCellRef(parts[1]);
+          if (start && end) {
+            for (let r = Math.min(start.row, end.row); r <= Math.max(start.row, end.row); r++) {
+              for (let c = Math.min(start.col, end.col); c <= Math.max(start.col, end.col); c++) {
+                cells.push({ col: c, row: r });
+              }
+            }
+          }
+        }
+        return cells.map(cell => {
+          const val = gridData[cell.row]?.[cell.col];
+          const parsed = Number(val);
+          return isNaN(parsed) ? 0 : parsed;
+        });
+      };
+
+      try {
+        let expr = rawExpr;
+        const funcRegex = /(SUM|AVERAGE|MIN|MAX|IF)\s*\(([^()]+)\)/i;
+        let match;
+        let guard = 0;
+        while ((match = funcRegex.exec(expr)) && guard < 20) {
+          guard++;
+          const funcName = match[1].toUpperCase();
+          const argBody = match[2];
+
+          if (funcName === 'IF') {
+            const parts = argBody.split(',').map(s => s.trim());
+            if (parts.length >= 2) {
+              const cond = parts[0];
+              const trueVal = getVal(parts[1]);
+              const falseVal = parts[2] ? getVal(parts[2]) : '';
+              let resCond = false;
+              if (cond.includes('>=')) {
+                const [l, r] = cond.split('>=');
+                resCond = Number(getVal(l)) >= Number(getVal(r));
+              } else if (cond.includes('<=')) {
+                const [l, r] = cond.split('<=');
+                resCond = Number(getVal(l)) <= Number(getVal(r));
+              } else if (cond.includes('>')) {
+                const [l, r] = cond.split('>');
+                resCond = Number(getVal(l)) > Number(getVal(r));
+              } else if (cond.includes('<')) {
+                const [l, r] = cond.split('<');
+                resCond = Number(getVal(l)) < Number(getVal(r));
+              } else if (cond.includes('=')) {
+                const [l, r] = cond.split('=');
+                resCond = String(getVal(l)) === String(getVal(r));
+              }
+              const finalVal = resCond ? trueVal : falseVal;
+              expr = expr.replace(match[0], typeof finalVal === 'string' ? `"${finalVal}"` : finalVal);
+              continue;
+            }
+          }
+
+          const vals = getRangeValues(argBody);
+          let res = 0;
+          if (funcName === 'SUM') res = vals.reduce((a, b) => a + b, 0);
+          else if (funcName === 'AVERAGE') res = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+          else if (funcName === 'MIN') res = vals.length ? Math.min(...vals) : 0;
+          else if (funcName === 'MAX') res = vals.length ? Math.max(...vals) : 0;
+          expr = expr.replace(match[0], res);
+        }
+
+        const tokens = expr.split(/([+\-*/])/).map(t => t.trim());
+        if (tokens.length === 1) return getVal(tokens[0]);
+
+        let i = 0;
+        while (i < tokens.length) {
+          if (tokens[i] === '*' || tokens[i] === '/') {
+            const left = Number(getVal(tokens[i - 1]));
+            const right = Number(getVal(tokens[i + 1]));
+            if (tokens[i] === '/' && right === 0) return '#DIV/0!';
+            const res = tokens[i] === '*' ? left * right : left / right;
+            tokens.splice(i - 1, 3, res);
+            i = 0;
+          } else { i++; }
+        }
+
+        i = 0;
+        while (i < tokens.length) {
+          if (tokens[i] === '+' || tokens[i] === '-') {
+            const left = Number(getVal(tokens[i - 1]));
+            const right = Number(getVal(tokens[i + 1]));
+            const res = tokens[i] === '+' ? left + right : left - right;
+            tokens.splice(i - 1, 3, res);
+            i = 0;
+          } else { i++; }
+        }
+
+        const result = tokens[0];
+        return (typeof result === 'number' && !isNaN(result)) ? (Number.isInteger(result) ? result : parseFloat(result.toFixed(2))) : result;
+      } catch (e) {
+        return '#VALUE!';
+      }
+    }
+
+    const { createApp, ref, computed, onMounted, updated } = Vue;
+
+    // --- REUSABLE EXCEL SIMULATOR COMPONENT ---
+    const ExcelSimulator = {
+      props: {
+        initialGrid: Array,
+        cols: { type: Array, default: () => ['A', 'B', 'C', 'D', 'E'] },
+        rows: { type: Number, default: 6 },
+        title: { type: String, default: 'Simulator Microsoft Excel' }
+      },
+      emits: ['grid-updated'],
+      template: `
+        <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden my-4">
+          <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between text-xs">
+            <span class="font-bold text-emerald-400 flex items-center gap-2">
+              <i data-lucide="table" class="w-4 h-4"></i> {{ title }}
+            </span>
+            <span class="text-slate-400 text-[11px]">Mode Interaktif</span>
+          </div>
+          <div class="flex items-center gap-2 p-2 bg-slate-850 border-b border-slate-700 text-xs">
+            <div class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-mono font-bold text-amber-300">
+              {{ activeCellRef }}
+            </div>
+            <div class="text-slate-400 font-serif italic px-1 font-bold">fx</div>
+            <input 
+              type="text" 
+              v-model="editingValue"
+              @input="onInput"
+              placeholder="Ketik angka, teks, atau rumus (misal =SUM(A1:A5))..."
+              class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1 font-mono text-white focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs font-mono">
+              <thead>
+                <tr class="bg-slate-900 text-slate-400">
+                  <th class="w-10 border border-slate-700 p-1.5 text-center font-normal">#</th>
+                  <th v-for="(col, cIdx) in cols" :key="col" :class="['border border-slate-700 p-1.5 text-center font-bold', selectedCell.col === cIdx ? 'bg-emerald-500/10 text-emerald-300' : '']">
+                    {{ col }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, rIdx) in grid" :key="rIdx" class="hover:bg-slate-750">
+                  <td :class="['border border-slate-700 p-1.5 text-center text-slate-500', selectedCell.row === rIdx ? 'bg-emerald-500/10 text-emerald-300 font-bold' : '']">
+                    {{ rIdx + 1 }}
+                  </td>
+                  <td
+                    v-for="(cellVal, cIdx) in row"
+                    :key="cIdx"
+                    @click="selectCell(rIdx, cIdx)"
+                    :class="[
+                      'border border-slate-700 p-2 min-w-[90px] h-9 cursor-pointer transition-all relative',
+                      selectedCell.col === cIdx && selectedCell.row === rIdx ? 'bg-emerald-500/20 ring-2 ring-emerald-500 z-10 text-white font-semibold' : 'bg-slate-800/60 hover:bg-slate-700/50 text-slate-200'
+                    ]"
+                  >
+                    <div class="flex items-center justify-between w-full h-full">
+                      <span class="truncate">{{ computedGrid[rIdx][cIdx] }}</span>
+                      <span v-if="String(cellVal).startsWith('=')" class="text-[9px] text-amber-400 font-mono ml-1">fx</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `,
+      setup(props, { emit }) {
+        const grid = ref(Array(props.rows).fill(null).map(() => Array(props.cols.length).fill('')));
+        const selectedCell = ref({ col: 0, row: 0 });
+        const editingValue = ref('');
+
+        if (props.initialGrid) {
+          props.initialGrid.forEach((r, rIdx) => {
+            r.forEach((val, cIdx) => {
+              if (rIdx < props.rows && cIdx < props.cols.length) {
+                grid.value[rIdx][cIdx] = String(val);
+              }
+            });
+          });
+        }
+
+        const activeCellRef = computed(() => {
+          const colLetter = String.fromCharCode(65 + selectedCell.value.col);
+          return `${colLetter}${selectedCell.value.row + 1}`;
+        });
+
+        const computedGrid = computed(() => {
+          return grid.value.map(row => {
+            return row.map(cellVal => {
+              if (typeof cellVal === 'string' && cellVal.startsWith('=')) {
+                return evaluateFormula(cellVal, grid.value);
+              }
+              return cellVal;
+            });
+          });
+        });
+
+        const selectCell = (r, c) => {
+          selectedCell.value = { col: c, row: r };
+          editingValue.value = grid.value[r][c] || '';
+        };
+
+        const onInput = () => {
+          grid.value[selectedCell.value.row][selectedCell.value.col] = editingValue.value;
+          emit('grid-updated', grid.value);
+        };
+
+        return { grid, selectedCell, editingValue, activeCellRef, computedGrid, selectCell, onInput };
+      }
+    };
+
+    // --- MAIN VUE APPLICATION ---
+    const app = createApp({
+      components: { 'excel-simulator': ExcelSimulator },
+      setup() {
+        const activeTab = ref('home');
+        const points = ref(parseInt(localStorage.getItem('eda_points') || '0', 10));
+        const completedMissions = ref(JSON.parse(localStorage.getItem('eda_completed') || '[]'));
+
+        const badges = [
+          { id: 'data_explorer', title: 'Data Explorer', icon: 'search', desc: 'Konsep dasar data & Excel', score: 100 },
+          { id: 'excel_beginner', title: 'Excel Beginner', icon: 'table', desc: 'Pengelolaan & Filter tabel', score: 300 },
+          { id: 'formula_master', title: 'Formula Master', icon: 'calculator', desc: 'Operasi matematika & SUM', score: 600 },
+          { id: 'data_analyst', title: 'Data Analyst', icon: 'bar-chart-2', desc: 'AVERAGE, MIN, MAX & IF', score: 1000 },
+          { id: 'excel_champion', title: 'Excel Champion', icon: 'trophy', desc: 'Tuntas Tantangan Kantin', score: 1500 }
+        ];
+
+        const navItems = [
+          { id: 'home', title: 'Beranda Utama', icon: 'book-open' },
+          { id: 'm1', title: '1. Mengenal Data', icon: 'eye' },
+          { id: 'm2', title: '2. Menyimpan & Filter', icon: 'filter' },
+          { id: 'm3', title: '3. Kalkulator Excel', icon: 'calculator' },
+          { id: 'm4', title: '4. Fungsi SUM', icon: 'layers' },
+          { id: 'm5', title: '5. AVERAGE/MIN/MAX', icon: 'bar-chart-2' },
+          { id: 'm6', title: '6. Logika IF', icon: 'cpu' },
+          { id: 'm7', title: '7. Final Challenge', icon: 'trophy' }
+        ];
+
+        const missionList = [
+          { id: 'm1', title: '1. Mengenal Analisis Data', desc: 'Konsep data dan komponen Excel.', xp: 100 },
+          { id: 'm2', title: '2. Menyimpan & Memfilter Data', desc: 'Simulasi pengelolaan data & filter.', xp: 200 },
+          { id: 'm3', title: '3. Excel sebagai Kalkulator', desc: 'Operasi +, -, *, /.', xp: 300 },
+          { id: 'm4', title: '4. Fungsi SUM', desc: 'Penjumlahan otomatis rentang data.', xp: 400 },
+          { id: 'm5', title: '5. AVERAGE, MIN, MAX', desc: 'Analisis nilai statistik.', xp: 500 },
+          { id: 'm6', title: '6. Logika Fungsi IF', desc: 'Pengambilan keputusan otomatis.', xp: 600 },
+          { id: 'm7', title: '7. Final Challenge Kantin', desc: 'Studi kasus olah data kantin sekolah.', xp: 800 }
+        ];
+
+        const levelInfo = computed(() => {
+          const pts = points.value;
+          if (pts >= 1500) return { level: 5, title: 'Excel Champion' };
+          if (pts >= 1000) return { level: 4, title: 'Senior Data Analyst' };
+          if (pts >= 600) return { level: 3, title: 'Formula Wizard' };
+          if (pts >= 300) return { level: 2, title: 'Junior Data Operator' };
+          return { level: 1, title: 'Data Explorer Apprentice' };
+        });
+
+        const unlockedBadgesCount = computed(() => {
+          return badges.filter(b => points.value >= b.score).length;
+        });
+
+        const completeMission = (mId, xp) => {
+          if (!completedMissions.value.includes(mId)) {
+            completedMissions.value.push(mId);
+            points.value += xp;
+            localStorage.setItem('eda_points', points.value.toString());
+            localStorage.setItem('eda_completed', JSON.stringify(completedMissions.value));
+          }
+        };
+
+        // --- MISSION 1 STATES ---
+        const activeComp = ref(null);
+        const excelComponents = [
+          { name: 'Title Bar', desc: 'Menampilkan nama dokumen aktif.' },
+          { name: 'Ribbon', desc: 'Kumpulan menu dan alat kerja utama.' },
+          { name: 'Name Box', desc: 'Menunjukkan alamat sel aktif (misal A1).' },
+          { name: 'Formula Bar', desc: 'Tempat pengetikan rumus dan isi sel.' },
+          { name: 'Column Heading', desc: 'Nama kolom (A, B, C...).' },
+          { name: 'Row Heading', desc: 'Nomor baris (1, 2, 3...).' }
+        ];
+        const m1Grid = ref([['', '', ''], ['', '', ''], ['', '', '']]);
+        const isM1Passed = computed(() => {
+          const g = m1Grid.value;
+          return g[0][0].toLowerCase() === 'nama' && g[0][1].toLowerCase() === 'nilai' && g[1][0].length > 0 && g[1][1] === '85';
+        });
+
+        // --- MISSION 2 STATES ---
+        const m2Data = ref([
+          { id: 1, nama: 'Buku Tulis', jumlah: 5, harga: 5000 },
+          { id: 2, nama: 'Pulpen', jumlah: 10, harga: 3000 },
+          { id: 3, nama: 'Pensil', jumlah: 8, harga: 2500 },
+          { id: 4, nama: 'Penghapus', jumlah: 6, harga: 2000 },
+          { id: 5, nama: 'Penggaris', jumlah: 4, harga: 4000 },
+          { id: 6, nama: 'Spidol', jumlah: 3, harga: 7000 },
+          { id: 7, nama: 'Buku Gambar', jumlah: 5, harga: 6000 },
+          { id: 8, nama: 'Rautan', jumlah: 7, harga: 2500 },
+          { id: 9, nama: 'Map Plastik', jumlah: 4, harga: 3500 },
+          { id: 10, nama: 'Stabilo', jumlah: 2, harga: 8000 }
+        ]);
+        const m2FilterMoreThan5 = ref(false);
+        const m2SortOrder = ref(null);
+        const m2Passed = ref(false);
+
+        const processedM2Data = computed(() => {
+          let res = [...m2Data.value];
+          if (m2FilterMoreThan5.value) res = res.filter(i => i.jumlah > 5);
+          if (m2SortOrder.value === 'asc') res.sort((a, b) => a.jumlah - b.jumlah);
+          if (m2SortOrder.value === 'desc') res.sort((a, b) => b.jumlah - a.jumlah);
+          return res;
+        });
+
+        const checkM2Challenge = () => {
+          if (m2FilterMoreThan5.value) {
+            m2Passed.value = true;
+            completeMission('m2', 200);
+          }
+        };
+
+        // --- MISSION 3 STATES ---
+        const calcN1 = ref(10);
+        const calcN2 = ref(5);
+        const calcOp = ref('+');
+        const calcResult = computed(() => {
+          const n1 = calcN1.value || 0;
+          const n2 = calcN2.value || 0;
+          if (calcOp.value === '+') return n1 + n2;
+          if (calcOp.value === '-') return n1 - n2;
+          if (calcOp.value === '*') return n1 * n2;
+          if (calcOp.value === '/') return n2 === 0 ? '#DIV/0!' : n1 / n2;
+          return 0;
+        });
+        const m3Grid = ref([['12', '4', '=A1+B1'], ['25', '5', '=A2/B2'], ['8', '7', '=A3*B3'], ['', '', '']]);
+        const m3Passed = ref(false);
+        const checkM3 = () => {
+          const hasFormula = m3Grid.value.some(r => r.some(c => String(c).startsWith('=')));
+          if (hasFormula) {
+            m3Passed.value = true;
+            completeMission('m3', 300);
+          }
+        };
+
+        // --- MISSION 4 STATES ---
+        const m4Grid = ref([
+          ['Buku', '10'], ['Pensil', '15'], ['Pulpen', '20'], 
+          ['Penghapus', '8'], ['Penggaris', '7'], ['TOTAL', '=SUM(B1:B5)']
+        ]);
+        const m4Passed = ref(false);
+        const checkM4 = () => {
+          const val = evaluateFormula(m4Grid.value[5][1], m4Grid.value);
+          if (val === 60) {
+            m4Passed.value = true;
+            completeMission('m4', 400);
+          }
+        };
+
+        // --- MISSION 5 STATES ---
+        const m5Grid = ref([
+          ['Andi', '85'], ['Budi', '90'], ['Citra', '75'], ['Dina', '95'], ['Eko', '80'],
+          ['Rata-Rata', '=AVERAGE(B1:B5)'], ['Nilai Min', '=MIN(B1:B5)'], ['Nilai Max', '=MAX(B1:B5)']
+        ]);
+        const m5Passed = ref(false);
+        const checkM5 = () => {
+          const avg = evaluateFormula(m5Grid.value[5][1], m5Grid.value);
+          const min = evaluateFormula(m5Grid.value[6][1], m5Grid.value);
+          const max = evaluateFormula(m5Grid.value[7][1], m5Grid.value);
+          if (avg === 85 && min === 75 && max === 95) {
+            m5Passed.value = true;
+            completeMission('m5', 500);
+          }
+        };
+
+        // --- MISSION 6 STATES ---
+        const m6Grid = ref([
+          ['Andi', '85', '=IF(B1>=75,"Lulus","Belum Lulus")'],
+          ['Budi', '65', '=IF(B2>=75,"Lulus","Belum Lulus")'],
+          ['Citra', '90', '=IF(B3>=75,"Lulus","Belum Lulus")'],
+          ['Dina', '70', '=IF(B4>=75,"Lulus","Belum Lulus")'],
+          ['Eko', '78', '=IF(B5>=75,"Lulus","Belum Lulus")']
+        ]);
+        const m6Passed = ref(false);
+        const checkM6 = () => {
+          const c1 = evaluateFormula(m6Grid.value[0][2], m6Grid.value);
+          const c2 = evaluateFormula(m6Grid.value[1][2], m6Grid.value);
+          if (c1 === 'Lulus' && c2 === 'Belum Lulus') {
+            m6Passed.value = true;
+            completeMission('m6', 600);
+          }
+        };
+
+        // --- MISSION 7 STATES ---
+        const m7Grid = ref([
+          ['Nasi Goreng', '20', '10000', '=B1*C1', '=IF(B1>=15,"Laris","Biasa")'],
+          ['Es Teh', '35', '3000', '=B2*C2', '=IF(B2>=15,"Laris","Biasa")'],
+          ['Roti Bakar', '12', '6000', '=B3*C3', '=IF(B3>=15,"Laris","Biasa")'],
+          ['Mie Ayam', '25', '12000', '=B4*C4', '=IF(B4>=15,"Laris","Biasa")'],
+          ['Air Mineral', '40', '2000', '=B5*C5', '=IF(B5>=15,"Laris","Biasa")'],
+          ['TOTAL REVENUE', '', '', '=SUM(D1:D5)', ''],
+          ['RATA-RATA TERJUAL', '=AVERAGE(B1:B5)', '', '', ''],
+          ['TERJUAL TERBANYAK', '=MAX(B1:B5)', '', '', '']
+        ]);
+        const q1 = ref('');
+        const q2 = ref('');
+        const q3 = ref('');
+        const q4 = ref('');
+        const m7Passed = ref(false);
+
+        const submitFinalQuiz = () => {
+          m7Passed.value = true;
+          completeMission('m7', 800);
+        };
+
+        const refreshIcons = () => {
+          setTimeout(() => {
+            if (window.lucide) window.lucide.createIcons();
+          }, 50);
+        };
+
+        onMounted(() => refreshIcons());
+        updated(() => refreshIcons());
+
+        return {
+          activeTab, points, completedMissions, badges, navItems, missionList, levelInfo, unlockedBadgesCount, completeMission,
+          activeComp, excelComponents, m1Grid, isM1Passed,
+          m2Data, m2FilterMoreThan5, m2SortOrder, m2Passed, processedM2Data, checkM2Challenge,
+          calcN1, calcN2, calcOp, calcResult, m3Grid, m3Passed, checkM3,
+          m4Grid, m4Passed, checkM4,
+          m5Grid, m5Passed, checkM5,
+          m6Grid, m6Passed, checkM6,
+          m7Grid, q1, q2, q3, q4, m7Passed, submitFinalQuiz
+        };
+      }
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>
